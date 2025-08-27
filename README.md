@@ -1,3 +1,7 @@
+# ⚠️ **Disclaimer**  ⚠️
+> This is a **pre-release version**. It is not yet ready for general use and is currently being tested in internal projects.  
+> Use it in your own projects **at your own risk**.
+
 # CachedFlow
 
 **A lightweight Kotlin Multiplatform caching library** designed to work using a key-based strategy system and flexible caching policies.
