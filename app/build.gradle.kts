@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.dapadz.cachedflow"
+    namespace = "ru.dapadz.cachedflow"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.dapadz.cachedflow"
+        applicationId = "ru.dapadz.cachedflow"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

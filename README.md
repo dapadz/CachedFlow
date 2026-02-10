@@ -28,7 +28,7 @@
 
 ```kotlin
 dependencies {
-    implementation("com.dapadz:cachedflow:<version>")
+    implementation("ru.dapadz:cachedflow:1.0.0")
 }
 ```
 
@@ -159,8 +159,8 @@ The module includes:
 
 ```kotlin
 dependencies {
-    implementation("com.dapadz:cachedflow:<version>")
-    implementation("com.dapadz:cachedflow-ext-android:<version>")
+    implementation("ru.dapadz:cachedflow:1.0.0")
+    implementation("ru.dapadz:cachedflow-ext-android:1.0.0")
 }
 ```
 
