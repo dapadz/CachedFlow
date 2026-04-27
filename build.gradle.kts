@@ -1,3 +1,5 @@
+import java.util.Properties
+
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     alias(libs.plugins.android.application) apply false
@@ -7,15 +9,29 @@ plugins {
     alias(libs.plugins.android.library) apply false
     `maven-publish`
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+
 tasks.register("printSigningProps") {
     doLast {
-        val k = findProperty("signingKey") as String?
-        val p = findProperty("signingPassword") as String?
-        println("signingKey present: ${!k.isNullOrBlank()}  length=${k?.length}")
-        println("signingPassword present: ${!p.isNullOrBlank()}  length=${p?.length}")
-        if (!k.isNullOrBlank()) {
-            println("signingKey head: " + k.take(40))
-            println("signingKey tail: " + k.takeLast(40))
+        val signingKey = localProperties.getProperty("signingKey")
+            ?: providers.gradleProperty("signingKey").orNull
+        val signingKeyFile = localProperties.getProperty("signingKeyFile")
+            ?: providers.gradleProperty("signingKeyFile").orNull
+        val signingPassword = localProperties.getProperty("signingPassword")
+            ?: providers.gradleProperty("signingPassword").orNull
+
+        println("signingKey present: ${!signingKey.isNullOrBlank()}")
+        println("signingKeyFile present: ${!signingKeyFile.isNullOrBlank()}")
+        println("signingPassword present: ${!signingPassword.isNullOrBlank()}")
+
+        if (!signingKeyFile.isNullOrBlank()) {
+            println("signingKeyFile: $signingKeyFile")
         }
     }
 }
