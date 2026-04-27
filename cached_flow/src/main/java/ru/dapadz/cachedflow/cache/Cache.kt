@@ -83,7 +83,7 @@ object Cache {
      * @throws CacheNotInitializedException if [initialize] has not been called.
      */
     suspend fun clear() {
-        store?.clear()
+        requireStore().clear()
         requireLogger().info(TAG, "Cache clear")
     }
 
