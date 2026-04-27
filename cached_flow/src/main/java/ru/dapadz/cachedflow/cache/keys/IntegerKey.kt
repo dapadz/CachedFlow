@@ -11,7 +11,7 @@ import kotlin.reflect.KClass
  * @param name key name
  * @see IntegerKey
  */
-fun integerCacheKey(name: String):IntegerKey = IntegerKey(name)
+fun integerCacheKey(name: String): IntegerKey = IntegerKey(name)
 
 /**
  * A class for saving an item of type [Int] to the cache.
@@ -20,7 +20,7 @@ fun integerCacheKey(name: String):IntegerKey = IntegerKey(name)
  * @see Key
  * @see integerCacheKey
  */
-class IntegerKey(name: String): Key<Int>(name) {
+class IntegerKey(name: String) : Key<Int>(name) {
     override fun isTypeOf(valueClass: KClass<*>): Boolean = valueClass == Int::class
     override suspend fun getFromStore(store: Store): Flow<Int?> = store.get(StoreKey(name, Int::class))
     override suspend fun saveToStore(item: Int, store: Store) = store.save(StoreKey(name, Int::class), item)

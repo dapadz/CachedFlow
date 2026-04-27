@@ -23,5 +23,5 @@ fun stringCacheKey(name: String): StringKey = StringKey(name)
 class StringKey(name: String) : Key<String>(name) {
     override fun isTypeOf(valueClass: KClass<*>): Boolean = valueClass == String::class
     override suspend fun saveToStore(item: String, store: Store) = store.save(StoreKey(name, String::class), item)
-    override suspend fun getFromStore(store: Store): Flow<String?> = store.get(StoreKey(name,  String::class))
+    override suspend fun getFromStore(store: Store): Flow<String?> = store.get(StoreKey(name, String::class))
 }

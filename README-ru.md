@@ -123,7 +123,12 @@ abstract class CacheStrategy <T> (
 |-----------|-----------------------------|------------------------------------------|
 | `String`  | `stringCacheKey(name)`      | `val key = stringCacheKey("username")`   |
 | `Int`     | `integerCacheKey(name)`     | `val key = integerCacheKey("user_age")`  |
+| `Long`    | `longCacheKey(name)`        | `val key = longCacheKey("view_count")`   |
 | `Float`   | `floatCacheKey(name)`       | `val key = floatCacheKey("user_score")`  |
+| `Double`  | `doubleCacheKey(name)`      | `val key = doubleCacheKey("price")`      |
+| `Byte`    | `byteCacheKey(name)`        | `val key = byteCacheKey("retry_count")`  |
+| `Short`   | `shortCacheKey(name)`       | `val key = shortCacheKey("port")`        |
+| `Char`    | `charCacheKey(name)`        | `val key = charCacheKey("grade")`        |
 | `Boolean` | `booleanCacheKey(name)`     | `val key = booleanCacheKey("is_logged")` |
 
 Эти ключи наследуются от `Key<T>` и включают встроенную логику для безопасных по типам операций кеширования.
