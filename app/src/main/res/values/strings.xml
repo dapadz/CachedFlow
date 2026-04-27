@@ -1,3 +1,20 @@
 <resources>
-    <string name="app_name">CachingFlow</string>
+    <string name="app_name">CachedFlow Demo</string>
+    <string name="toolbar_subtitle">A simple playground for cached_flow and extension scenarios</string>
+    <string name="section_general_actions">General Actions</string>
+    <string name="general_actions_description">Initialization uses SharedPreferenceStore and DemoLogger, which also forwards messages to AndroidLogger.</string>
+    <string name="clear_cache_button">Clear Entire Cache via Cache.clear()</string>
+    <string name="clear_log_button">Clear On-Screen Log</string>
+    <string name="section_strategies">cached_flow Strategies</string>
+    <string name="strategies_description">These buttons run the same fake request with a String key so you can compare IF_HAVE, ONLY_REQUEST, and ONLY_CACHE.</string>
+    <string name="cache_after_load_checkbox">Save response to cache after request (cachedAfterLoad=true)</string>
+    <string name="run_only_request_button">Run ONLY_REQUEST</string>
+    <string name="run_if_have_button">Run IF_HAVE</string>
+    <string name="run_only_cache_button">Run ONLY_CACHE</string>
+    <string name="section_primitive_keys">Primitive Keys</string>
+    <string name="primitive_keys_description">Each button performs a round trip: write via ONLY_REQUEST and read via ONLY_CACHE. This covers all built-in key classes, including the Byte, Short, Char, and Double adapters.</string>
+    <string name="section_serialization">Serialization Extension</string>
+    <string name="serialization_description">This section tests serializableKey, serializableListKey, a custom SerializersModule, and behavior with legacy or malformed JSON.</string>
+    <string name="section_cache_log">Cache State and Log</string>
+    <string name="cache_log_description">The top block shows a raw SharedPreferences dump, and the bottom block shows a combined demo and library event log.</string>
 </resources>
