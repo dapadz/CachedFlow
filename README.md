@@ -126,7 +126,12 @@ Use the following factory functions to quickly define typed keys for common prim
 |----------|--------------------------|------------------------------------------|
 | `String` | `stringCacheKey(name)`   | `val key = stringCacheKey("username")`   |
 | `Int`    | `integerCacheKey(name)`  | `val key = integerCacheKey("user_age")`  |
+| `Long`   | `longCacheKey(name)`     | `val key = longCacheKey("view_count")`   |
 | `Float`  | `floatCacheKey(name)`    | `val key = floatCacheKey("user_score")`  |
+| `Double` | `doubleCacheKey(name)`   | `val key = doubleCacheKey("price")`      |
+| `Byte`   | `byteCacheKey(name)`     | `val key = byteCacheKey("retry_count")`  |
+| `Short`  | `shortCacheKey(name)`    | `val key = shortCacheKey("port")`        |
+| `Char`   | `charCacheKey(name)`     | `val key = charCacheKey("grade")`        |
 | `Boolean`| `booleanCacheKey(name)`  | `val key = booleanCacheKey("is_logged")` |
 
 These keys inherit from `Key<T>` and include built-in logic to handle type-safe caching operations.

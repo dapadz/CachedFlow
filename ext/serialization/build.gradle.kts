@@ -1,3 +1,7 @@
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.plugins.signing.SigningExtension
+import java.util.Properties
+
 plugins {
     id("java-library")
     alias(libs.plugins.jetbrains.kotlin.jvm)
@@ -5,6 +9,31 @@ plugins {
     `maven-publish`
     signing
 }
+
+val cachedFlowPublishGroup = providers
+    .gradleProperty("cachedFlowPublishGroup")
+    .orElse("ru.dapadz")
+
+val cachedFlowPublishVersion = providers
+    .gradleProperty("cachedFlowPublishVersion")
+    .orElse("1.0.0")
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+
+val signingKey = localProperties.getProperty("signingKey")
+    ?: providers.gradleProperty("signingKey").orNull
+val signingKeyFile = localProperties.getProperty("signingKeyFile")
+    ?: providers.gradleProperty("signingKeyFile").orNull
+val signingPassword = localProperties.getProperty("signingPassword")
+    ?: providers.gradleProperty("signingPassword").orNull
+
+group = cachedFlowPublishGroup.get()
+version = cachedFlowPublishVersion.get()
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -30,8 +59,6 @@ publishing {
     publications {
         create<MavenPublication>("maven") {
             artifactId = "cachedflow-ext-serialization"
-            groupId = "ru.dapadz"
-            version = "1.0.0"
             from(components["java"])
 
             pom {
@@ -61,10 +88,31 @@ publishing {
     }
 }
 
-signing {
-    val keyFilePath = providers.gradleProperty("signingKeyFile").get()
-    val pass = providers.gradleProperty("signingPassword").get()
-    val keyText = file(keyFilePath).readText(Charsets.UTF_8)
-    useInMemoryPgpKeys(keyText, pass)
-    sign(publishing.publications)
+afterEvaluate {
+    if (signingPassword.isNullOrBlank()) {
+        logger.lifecycle("Signing is skipped for ${project.path}: set signingPassword and signingKey or signingKeyFile in local.properties")
+        return@afterEvaluate
+    }
+
+    val keyText = when {
+        !signingKey.isNullOrBlank() -> signingKey
+        !signingKeyFile.isNullOrBlank() -> {
+            val keyFile = file(signingKeyFile)
+            if (!keyFile.exists()) {
+                logger.lifecycle("Signing is skipped for ${project.path}: signingKeyFile does not exist: $signingKeyFile")
+                return@afterEvaluate
+            }
+            keyFile.readText(Charsets.UTF_8)
+        }
+
+        else -> {
+            logger.lifecycle("Signing is skipped for ${project.path}: set signingKey or signingKeyFile in local.properties")
+            return@afterEvaluate
+        }
+    }
+
+    extensions.configure<SigningExtension>("signing") {
+        useInMemoryPgpKeys(keyText, signingPassword)
+        sign(extensions.getByType(PublishingExtension::class.java).publications["maven"])
+    }
 }
