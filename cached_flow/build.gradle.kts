@@ -50,6 +50,13 @@ kotlin {
 
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
+    testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.kotest.property)
+    testImplementation(libs.kotest.runner.junit5)
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
 publishing {
