@@ -1,6 +1,7 @@
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.plugins.signing.SigningExtension
+import org.gradle.jvm.tasks.Jar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
@@ -37,6 +38,8 @@ val signingPassword = localProperties.getProperty("signingPassword")
 
 group = cachedFlowPublishGroup.get()
 version = cachedFlowPublishVersion.get()
+
+val publishedArtifactId = "cachedflow"
 
 base {
     archivesName.set("cachedflow")
@@ -96,34 +99,47 @@ android {
     sourceSets["main"].java.setSrcDirs(emptyList<String>())
 }
 
-publishing {
-    publications.withType<MavenPublication>().configureEach {
-        pom {
-            name.set("CachedFlow")
-            description.set("A lightweight caching utility for Kotlin Flow.")
-            url.set("https://github.com/dapadz/CachedFlow")
-            licenses {
-                license {
-                    name.set("Apache License 2.0")
-                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                }
+afterEvaluate {
+    extensions.configure<PublishingExtension>("publishing") {
+        publications.withType(MavenPublication::class.java).configureEach {
+            val publicationName = name
+            artifactId = when (publicationName) {
+                "kotlinMultiplatform" -> publishedArtifactId
+                "androidRelease" -> "$publishedArtifactId-android"
+                else -> "$publishedArtifactId-${publicationName.lowercase()}"
             }
-            scm {
+
+            val javadocJarTask = tasks.register("${publicationName}JavadocJar", Jar::class) {
+                archiveBaseName.set("${project.name}-${publicationName.lowercase()}-javadoc")
+                archiveClassifier.set("javadoc")
+            }
+            artifact(javadocJarTask)
+
+            pom {
+                name.set("CachedFlow")
+                description.set("A lightweight caching utility for Kotlin Flow.")
                 url.set("https://github.com/dapadz/CachedFlow")
-                connection.set("scm:git:https://github.com/dapadz/CachedFlow.git")
-                developerConnection.set("scm:git:ssh://git@github.com:dapadz/CachedFlow.git")
-            }
-            developers {
-                developer {
-                    id.set("dapadz")
-                    name.set("dapadz")
+                licenses {
+                    license {
+                        name.set("Apache License 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                scm {
+                    url.set("https://github.com/dapadz/CachedFlow")
+                    connection.set("scm:git:https://github.com/dapadz/CachedFlow.git")
+                    developerConnection.set("scm:git:ssh://git@github.com:dapadz/CachedFlow.git")
+                }
+                developers {
+                    developer {
+                        id.set("dapadz")
+                        name.set("dapadz")
+                    }
                 }
             }
         }
     }
-}
 
-afterEvaluate {
     if (signingPassword.isNullOrBlank()) {
         logger.lifecycle("Signing is skipped for ${project.path}: set signingPassword and signingKey or signingKeyFile in local.properties")
         return@afterEvaluate

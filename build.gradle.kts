@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.Sync
+import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.bundling.Zip
 import java.util.Properties
 
@@ -104,7 +105,18 @@ tasks.register("publishCachedFlowAllToMavenLocal") {
 tasks.register("publishCachedFlowAllToLocalBundle") {
     group = "publishing"
     description = "Publishes all releaseable CachedFlow modules to the root local bundle repository"
+    dependsOn("cleanCachedFlowPublishingDirs")
     dependsOn(publishableModules.map { "publish${it.taskSuffix}ToLocalBundle" })
+}
+
+tasks.register<Delete>("cleanCachedFlowPublishingDirs") {
+    group = "publishing"
+    description = "Cleans generated publishing directories used for local bundle and central bundle assembly"
+    delete(
+        layout.buildDirectory.dir("local-maven"),
+        layout.buildDirectory.dir("central-staging"),
+        layout.buildDirectory.dir("central-bundle")
+    )
 }
 
 val stageCachedFlowForCentral by tasks.registering(Sync::class) {
@@ -117,6 +129,8 @@ val stageCachedFlowForCentral by tasks.registering(Sync::class) {
 
     exclude("**/maven-metadata*.xml")
     exclude("**/maven-metadata*.xml.*")
+    exclude("**/.DS_Store")
+    exclude("**/._*")
 }
 
 val centralBundleFile = layout.buildDirectory.file("central-bundle/cachedflow-central-bundle.zip")
