@@ -1,10 +1,14 @@
 import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.plugins.signing.SigningExtension
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
-    id("java-library")
-    alias(libs.plugins.jetbrains.kotlin.jvm)
+    alias(libs.plugins.kotest)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.jetbrains.kotlin.multiplatform)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.plugin.serialization)
     `maven-publish`
     signing
@@ -16,7 +20,7 @@ val cachedFlowPublishGroup = providers
 
 val cachedFlowPublishVersion = providers
     .gradleProperty("cachedFlowPublishVersion")
-    .orElse("1.0.0")
+    .orElse("1.1.0")
 
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")
@@ -35,53 +39,86 @@ val signingPassword = localProperties.getProperty("signingPassword")
 group = cachedFlowPublishGroup.get()
 version = cachedFlowPublishVersion.get()
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-
-    withSourcesJar()
-    withJavadocJar()
+base {
+    archivesName.set("cachedflow-ext-serialization")
 }
 
 kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+    androidTarget {
+        publishLibraryVariants("release")
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
+
+    jvm("desktop") {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
+
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+
+    sourceSets {
+        commonMain {
+            kotlin.srcDir("src/main/java")
+            dependencies {
+                api(project(":cached_flow"))
+                implementation(libs.jetbrains.kotlinx.serialization)
+            }
+        }
+
+        commonTest {
+            kotlin.srcDir("src/commonTest/kotlin")
+            dependencies {
+                implementation(libs.kotest.framework.engine)
+                implementation(libs.kotest.assertions.core)
+                implementation(libs.kotest.property)
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
     }
 }
 
-dependencies {
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.jetbrains.kotlinx.serialization)
-    api(project(":cached_flow"))
+android {
+    namespace = "ru.dapadz.cachedflow.cache.ext.serialization"
+    compileSdk = 36
+
+    defaultConfig {
+        minSdk = 24
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    sourceSets["main"].java.setSrcDirs(emptyList<String>())
 }
 
 publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            artifactId = "cachedflow-ext-serialization"
-            from(components["java"])
-
-            pom {
-                name.set("CachedFlow Ext Serialization")
-                description.set("Kotlinx Serialization extensions for CachedFlow.")
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            name.set("CachedFlow Ext Serialization")
+            description.set("Kotlinx Serialization extensions for CachedFlow.")
+            url.set("https://github.com/dapadz/CachedFlow")
+            licenses {
+                license {
+                    name.set("Apache License 2.0")
+                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                }
+            }
+            scm {
                 url.set("https://github.com/dapadz/CachedFlow")
-
-                licenses {
-                    license {
-                        name.set("Apache License 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-                scm {
-                    url.set("https://github.com/dapadz/CachedFlow")
-                    connection.set("scm:git:https://github.com/dapadz/CachedFlow.git")
-                    developerConnection.set("scm:git:ssh://git@github.com:dapadz/CachedFlow.git")
-                }
-                developers {
-                    developer {
-                        id.set("dapadz")
-                        name.set("dapadz")
-                    }
+                connection.set("scm:git:https://github.com/dapadz/CachedFlow.git")
+                developerConnection.set("scm:git:ssh://git@github.com:dapadz/CachedFlow.git")
+            }
+            developers {
+                developer {
+                    id.set("dapadz")
+                    name.set("dapadz")
                 }
             }
         }
@@ -113,6 +150,6 @@ afterEvaluate {
 
     extensions.configure<SigningExtension>("signing") {
         useInMemoryPgpKeys(keyText, signingPassword)
-        sign(extensions.getByType(PublishingExtension::class.java).publications["maven"])
+        sign(extensions.getByType(PublishingExtension::class.java).publications)
     }
 }

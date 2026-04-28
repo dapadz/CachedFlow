@@ -1,205 +1,166 @@
 # CachedFlow
 
-**Легковесная кроссплатформенная библиотека кеширования на Kotlin**, 
-разработанная для работы с системой ключей и гибкими стратегиями кеширования.
+**Легковесная библиотека кеширования для Kotlin Flow с полноценной поддержкой Kotlin Multiplatform.**
 
----
+Начиная с версии **`1.1.0`**, CachedFlow можно использовать напрямую из `commonMain` в проектах Kotlin Multiplatform и Compose Multiplatform.
+
+## Поддерживаемые таргеты
+
+| Модуль | Android | Desktop JVM | iOS |
+| --- | --- | --- | --- |
+| `cachedflow` | Да | Да | Да |
+| `cachedflow-ext-serialization` | Да | Да | Да |
+| `cachedflow-ext-android` | Да | Нет | Нет |
+
+В репозитории также есть demo-приложение, которое проверяет библиотеку на **Android, Desktop и iOS**.
 
 ## Возможности
 
-- Простой доступ к кешу по ключам с типизацией
-- Настраиваемые стратегии кеширования
-- Поддержка приостановленных функций и работы с Flow
-- Подключаемое хранилище (`Store`) для полной гибкости на разных платформах
-- Встроенный интерфейс логирования
-- Полностью тестируемая и не зависящая от Android-зависимостей
+- Типизированные ключи кеша для примитивных и кастомных типов
+- Стратегии работы с кешем для Flow: `IF_HAVE`, `ONLY_REQUEST`, `ONLY_CACHE`
+- Абстракция `Store` для подключения платформенного хранилища
+- Опциональное логирование через `Logger`
+- Multiplatform-ready API для общей бизнес-логики
+- Расширение на базе `kotlinx.serialization` для объектов и списков
 
----
+## Подключение
 
-## Установка
+### Kotlin Multiplatform / Compose Multiplatform
 
-> Добавьте библиотеку в свой Kotlin Multiplatform проект (скоро будет доступна через Maven Central / GitHub Packages).
-
-<details>
-<summary>Gradle (Kotlin DSL)</summary>
+Подключение в `commonMain`:
 
 ```kotlin
-dependencies {
-    implementation("com.dapadz:cachedflow:<version>")
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation("ru.dapadz:cachedflow:1.1.0")
+            implementation("ru.dapadz:cachedflow-ext-serialization:1.1.0")
+        }
+    }
 }
 ```
 
-</details>
+### Android-расширение
 
----
+Если нужны Android-хелперы (`SharedPreferenceStore` и `AndroidLogger`), добавьте их в `androidMain`:
 
-## Начало работы
+```kotlin
+kotlin {
+    sourceSets {
+        androidMain.dependencies {
+            implementation("ru.dapadz:cachedflow-ext-android:1.1.0")
+        }
+    }
+}
+```
 
-### 1. Создайте собственную реализацию `Store`
+## Быстрый старт
 
-Интерфейс `Store` абстрагирует слой хранения данных:
+### 1. Реализуйте `Store`
+
+`Store` — это абстракция слоя хранения данных:
 
 ```kotlin
 interface Store {
-    suspend fun <T: Any> get(key: StoreKey<T>): Flow<T?>
-    suspend fun <T: Any> save(key: StoreKey<T>, value: T)
-    suspend fun <T: Any> delete(key: StoreKey<T>)
+    suspend fun <T : Any> get(key: StoreKey<T>): Flow<T?>
+    suspend fun <T : Any> save(key: StoreKey<T>, value: T)
+    suspend fun <T : Any> delete(key: StoreKey<T>)
     suspend fun clear()
 }
 ```
 
-Реализуйте его, используя локальное хранилище вашей платформы (например, `DataStore`, `SharedPreferences`, `NSUserDefaults`, файловую систему и т.д.).
+В shared-коде его можно реализовать поверх любого платформенного хранилища: `SharedPreferences`, `DataStore`, `NSUserDefaults`, файловой системы или собственной БД.
 
----
-
-### 2. Инициализация кеша
+### 2. Инициализируйте кеш
 
 ```kotlin
-fun main() {
-    val store: Store = MyMultiplatformStore()
-    Cache.initialize(store)
-}
+val store: Store = MyStore()
+Cache.initialize(store)
 ```
 
-При необходимости можно передать собственный `Logger`:
+При необходимости:
 
 ```kotlin
 Cache.initialize(store, logger = MyLogger())
 ```
 
----
-
-### 3. Определение и использование ключей кеша
-
-Используйте встроенные функции-хелперы для ключей или создайте свои:
+### 3. Определите ключи
 
 ```kotlin
 val userKey = stringCacheKey("user_profile")
 val ageKey = integerCacheKey("user_age")
 ```
 
----
-
-### 4. Кеширование Flow с помощью стратегии
+### 4. Закешируйте Flow
 
 ```kotlin
 flow { emit(fetchUserProfileFromApi()) }
     .cache(userKey, CacheStrategyType.IF_HAVE)
-    .collect { user -> println("User: $user") }
+    .collect { user ->
+        println("User: $user")
+    }
 ```
-
----
 
 ## Стратегии кеширования
 
-Выберите, как будет вести себя кеш во время работы Flow:
+| Стратегия | Описание |
+| --- | --- |
+| `IF_HAVE` | Использовать кеш, если значение уже есть, иначе выполнить исходный Flow. |
+| `ONLY_REQUEST` | Всегда выполнять исходный Flow и при необходимости сохранять результат. |
+| `ONLY_CACHE` | Читать только из кеша. Если значения нет, будет ошибка. |
 
-| Стратегия            | Описание                                                   |
-|-----------------------|-----------------------------------------------------------|
-| `ONLY_CACHE`          | Всегда использовать кеш. Бросает ошибку, если значения нет.|
-| `ONLY_REQUEST`        | Пропустить кеш. Всегда получать новые данные и опционально кешировать.|
-| `IF_HAVE` *(по умолчанию)* | Использовать кеш, если он есть, иначе выполнить Flow.   |
-
-#### Создание своей стратегии CacheStrategy
-
-Реализуйте интерфейс `CacheStrategy<T>` для полного контроля:
+Можно реализовать и собственную стратегию:
 
 ```kotlin
-abstract class CacheStrategy <T> (
+abstract class CacheStrategy<T>(
     protected val key: Key<T>,
-    protected val cachedAfterLoad : Boolean
+    protected val cachedAfterLoad: Boolean
 ) {
     abstract suspend fun execute(currentFlow: Flow<T>): Flow<T>
 }
 ```
 
----
+## Встроенные фабрики ключей
 
-## Ключи
+| Тип | Фабрика |
+| --- | --- |
+| `String` | `stringCacheKey(name)` |
+| `Int` | `integerCacheKey(name)` |
+| `Long` | `longCacheKey(name)` |
+| `Float` | `floatCacheKey(name)` |
+| `Double` | `doubleCacheKey(name)` |
+| `Byte` | `byteCacheKey(name)` |
+| `Short` | `shortCacheKey(name)` |
+| `Char` | `charCacheKey(name)` |
+| `Boolean` | `booleanCacheKey(name)` |
 
-Используйте следующие функции-фабрики для быстрого определения ключей для примитивных типов:
-
-| Тип ключа | Функция-фабрика            | Пример                                   |
-|-----------|-----------------------------|------------------------------------------|
-| `String`  | `stringCacheKey(name)`      | `val key = stringCacheKey("username")`   |
-| `Int`     | `integerCacheKey(name)`     | `val key = integerCacheKey("user_age")`  |
-| `Long`    | `longCacheKey(name)`        | `val key = longCacheKey("view_count")`   |
-| `Float`   | `floatCacheKey(name)`       | `val key = floatCacheKey("user_score")`  |
-| `Double`  | `doubleCacheKey(name)`      | `val key = doubleCacheKey("price")`      |
-| `Byte`    | `byteCacheKey(name)`        | `val key = byteCacheKey("retry_count")`  |
-| `Short`   | `shortCacheKey(name)`       | `val key = shortCacheKey("port")`        |
-| `Char`    | `charCacheKey(name)`        | `val key = charCacheKey("grade")`        |
-| `Boolean` | `booleanCacheKey(name)`     | `val key = booleanCacheKey("is_logged")` |
-
-Эти ключи наследуются от `Key<T>` и включают встроенную логику для безопасных по типам операций кеширования.
-
-#### Пример собственного ключа
-
-Вы также можете определить собственный ключ для сложных или кастомных типов:
+Можно использовать и собственные ключи:
 
 ```kotlin
-class MyKey(name: String): Key<MyType>(name) {
+class MyKey(name: String) : Key<MyType>(name) {
     override fun isTypeOf(valueClass: KClass<*>) = valueClass == MyType::class
-    override suspend fun getFromStore(store: Store): Flow<MyType?> = ...
-    override suspend fun saveToStore(item: MyType, store: Store) = ...
+
+    override suspend fun getFromStore(store: Store): Flow<MyType?> = TODO()
+
+    override suspend fun saveToStore(item: MyType, store: Store) = TODO()
 }
 ```
 
-# Расширения
+## Модули
 
-Для упрощения интеграции и расширения возможностей доступны дополнительные модули.  
-Они позволяют быстрее подключить библиотеку под конкретные платформы и сценарии использования.
+### `cachedflow`
 
-## Android
+Базовый multiplatform-модуль. Используется из общего `commonMain` кода.
 
-Набор расширений для удобной работы на Android.  
-Модуль включает:
-- готовую реализацию `Store` на основе `SharedPreferences`
-- логгер `AndroidLogger`, использующий стандартный `Log`
+### `cachedflow-ext-serialization`
 
-### Установка
+Расширение с поддержкой `kotlinx.serialization`:
 
-```kotlin
-dependencies {
-    implementation("com.dapadz:cachedflow:<version>")
-    implementation("com.dapadz:cachedflow-ext-android:<version>")
-}
-```
+- `serializableKey`
+- `serializableListKey`
+- `SerializersModule` для полиморфной и расширенной сериализации
 
-### Использование
-
-Пример инициализации `Cache` с использованием `SharedPreferenceStore` и `AndroidLogger`:
-
-```kotlin
-private fun initializeCache() {
-   Cache.initialize(
-       store = SharedPreferenceStore(context = this),
-       logger = AndroidLogger()
-   )
-}
-```
-
-## Kotlin Serialization
-
-Расширение, добавляющее поддержку [Kotlinx Serialization](https://github.com/Kotlin/kotlinx.serialization).  
-Позволяет сохранять и восстанавливать `Serializable` классы из кеша.
-
-Включает удобные ключи:
-- `serializableKey` — для одного объекта
-- `serializableListKey` — для списка объектов
-
-### Установка
-
-```kotlin
-dependencies {
-    implementation("com.dapadz:cachedflow:<version>")
-    implementation("com.dapadz:cachedflow-ext-serialization:<version>")
-}
-```
-
-### Использование
-
-Пример кеширования `Serializable` класса:
+Пример:
 
 ```kotlin
 @Serializable
@@ -211,8 +172,7 @@ fun getGoodDog(): Flow<Dog> {
 }
 ```
 
-Также можно использовать `SerializersModule` для более сложных сценариев —  
-например, сериализации интерфейсов и полиморфных классов:
+Пример с полиморфизмом:
 
 ```kotlin
 interface Animal {
@@ -244,4 +204,20 @@ fun getAnimals(): Flow<List<Animal>> {
             )
         )
 }
+```
+
+### `cachedflow-ext-android`
+
+Android-only helpers:
+
+- `SharedPreferenceStore`
+- `AndroidLogger`
+
+Пример:
+
+```kotlin
+Cache.initialize(
+    store = SharedPreferenceStore(context = this),
+    logger = AndroidLogger()
+)
 ```
